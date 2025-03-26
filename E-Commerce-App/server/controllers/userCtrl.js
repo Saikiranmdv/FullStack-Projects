@@ -56,14 +56,47 @@ const userCtrl = {
       jwt.verify(rf_token, process.env.REFRESH_TOKEN, (err, user) => {
         if (err)
           return res.status(400).json({ message: "Please login or Register" });
-        const accesstoken = createAccessToken({ id:user.id });
-        res.json({user,accesstoken})
+        const accesstoken = createAccessToken({ id: user.id });
+        res.json({ user, accesstoken });
       });
-
     } catch (error) {
-        return res.status(500).json({ message: err.json})
+      return res.status(500).json({ message: err.json });
     }
   },
+  login: async (req, res) => {
+    try {
+      const { email, password } = req.body;
+
+      const user = await Users.findOne({ email });
+      if (!user) {
+        return res.status(400).json({ msg: "user does not exist" });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch)
+        return res.status(400).json({ Message: "Incorrect Password" });
+
+      const accesstoken = createAccessToken({id: user._id})
+      const refreshToken = createAccessToken({id: user._id})
+
+
+      res.json({
+        message: "Login Successful",
+      });
+    } catch (err) {
+      return res.status(500).json({ message: err.message });
+    }
+  },
+  logout: async (req, res) => {
+    try {
+      res.clearCookie('refreshtoken', {path:'/user/refresh_token'})
+      return res.json({
+        message: "Log out"
+      })
+    } catch (err) {
+      return res.status(500).json({message:err.message})
+    }
+  }
 };
 
 const createAccessToken = (payload) => {
